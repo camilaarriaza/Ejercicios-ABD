@@ -105,7 +105,7 @@ $$
 ::: {#respuesta-1 .callout-note}
 
 #Estadísticos muestrales de cada clase 
-
+```{r}
 resumen <- bind_rows(
   clase_1 %>% summarise(
     clase = "clase_1",
@@ -122,6 +122,8 @@ resumen <- bind_rows(
 )
 
 resumen
+```
+
 
 RESPUESTA 
 
@@ -133,29 +135,41 @@ clase       n media varianza
 #Parámetros de la distribución posterior
 
 # Parámetros de la distribución previa
+
+```{r}
 MU_PREVIA     <- 247
 SIGMA2_PREVIA <- 34^2
+```
 
 # Distribución posterior para Clase 1
+```{r}
 mu_post_1     <- (resumen$varianza[1] * MU_PREVIA + resumen$n[1] * SIGMA2_PREVIA * resumen$media[1]) /
                  (resumen$varianza[1] + resumen$n[1] * SIGMA2_PREVIA)
 
 sigma2_post_1 <- (resumen$varianza[1] * SIGMA2_PREVIA) /
                  (resumen$varianza[1] + resumen$n[1] * SIGMA2_PREVIA)
+```
+
 
 # Distribución posterior para Clase 2
+```{r}
 mu_post_2     <- (resumen$varianza[2] * MU_PREVIA + resumen$n[2] * SIGMA2_PREVIA * resumen$media[2]) /
                  (resumen$varianza[2] + resumen$n[2] * SIGMA2_PREVIA)
 
 sigma2_post_2 <- (resumen$varianza[2] * SIGMA2_PREVIA) /
                  (resumen$varianza[2] + resumen$n[2] * SIGMA2_PREVIA)
 
+```
+
 # Resultados
+```{r}
 data.frame(
   Clase = c("Clase 1", "Clase 2"),
   Mu_post = c(mu_post_1, mu_post_2),
   Sigma2_post = c(sigma2_post_1, sigma2_post_2)
 )
+```
+
 
 RESPUESTA 
 
@@ -182,6 +196,7 @@ set.seed(20250318)
 
 ::: {#respuesta-2 .callout-note}
 
+```{r}
 # Inicialización de la semilla para asegurar la reproducibilidad
 set.seed(20250318)
 
@@ -192,6 +207,8 @@ muestras_clase_2 <- rnorm(500, mean = mu_post_2, sd = sqrt(sigma2_post_2))
 # Ver los primeros resultados de las muestras generadas
 head(muestras_clase_1)
 head(muestras_clase_2)
+```
+
 
 RESPUESTA PRIMEROS RESULTADOS GENERADOS 
 
@@ -211,6 +228,7 @@ ClASE 2:
 
 ::: {#respuesta-3 .callout-note}
 
+```{r}
 # Estimación de la media y varianza para la distribución posterior de Clase 1
 media_estim_clase_1 <- mean(muestras_clase_1)
 varianza_estim_clase_1 <- var(muestras_clase_1)
@@ -225,6 +243,7 @@ data.frame(
   Media_estim = c(media_estim_clase_1, media_estim_clase_2),
   Varianza_estim = c(varianza_estim_clase_1, varianza_estim_clase_2)
 )
+```
 
 RESPUESTA 
 
@@ -243,7 +262,7 @@ los resultados son ligeramente distintos. Esto sugiere que las simulaciones est�
 -   Calcula el error estándar de Monte Carlo de las medias estimadas por el método de Monte Carlo [@hoff2009, p. 56], y su intervalo al 95% de confianza (p. 57). Asume que las varianzas verdaderas son desconocidas (i.e., utiliza las varianzas obtenidas por el método de Monte Carlo). ¿Cuál es la amplitud de los intervalos? Comprueba si los valores reales (obtenidos analíticamente) están comprendidos en los intervalos
 
 ::: {#respuesta-4 .callout-note}
-
+```{r}
 # Estimación de la desviación estándar de las muestras
 desviacion_clase_1 <- sd(muestras_clase_1)
 desviacion_clase_2 <- sd(muestras_clase_2)
@@ -283,7 +302,7 @@ data.frame(
   Dentro_intervalo = c(real_clase_1[1] >= ic_clase_1[1] & real_clase_1[1] <= ic_clase_1[2],
                       real_clase_2[1] >= ic_clase_2[1] & real_clase_2[1] <= ic_clase_2[2])
 )
-
+```
 
 RESPUESTA 
 
@@ -310,7 +329,7 @@ RESPUESTA
 -   En base a las varianzas obtenidas por el método de Monte Carlo, determina el tamaño muestral de la distribución posterior necesario para alcanzar una precisión de 2 decimales en la estimación de la media de las distribuciones posteriores [@hoff2009, p. 56 ---vas a tener que "despejar" el tamaño de la muestra simulada]. Utiliza el valor mayor de ambas distribuciones para volver a calcular las medias, y comprueba si se alcanza la precisión esperada.
 
 ::: {#respuesta-5 .callout-note}
-
+```{r}
 # Suponer que ya se tienen estas desviaciones estándar
 desv_est_1 <- sd(muestras_clase_1)
 desv_est_2 <- sd(muestras_clase_2)
@@ -345,7 +364,7 @@ media_nueva_2 <- mean(nuevas_muestras_clase_2)
 # Mostrar redondeado a 2 decimales
 round(c(media_nueva_1, media_nueva_2), 2)
 
-VOLVER A SIMULAR CON EL NUEVO TAMAÑO MUESTRAL 
+#VOLVER A SIMULAR CON EL NUEVO TAMAÑO MUESTRAL 
 
 
 set.seed(20250318)
@@ -382,6 +401,9 @@ media_2_precisa <- mean(muestras_precisas_clase_2)
 round(media_1_precisa, 2)
 round(media_2_precisa, 2)
 
+```
+
+
 RESPUESTAS: 
 
 Tamaño muestral necesario para alcanzar una precisión de 2 decimales en la estimación de la media de las distribuciones posteriores: 12016790
@@ -408,7 +430,7 @@ Se ha alcanzado la precisión esperada.
 Obtén los resultados analíticos con las funciones `qnorm()` y `pnorm()`, y compara ambos.
 
 ::: {#respuesta-6 .callout-note}
-
+```{r}
 # Intervalos de credibilidad del 99% (percentiles 0.5% y 99.5%)
 quantile(muestras_precisas_clase_1, probs = c(0.005, 0.995))
 quantile(muestras_precisas_clase_2, probs = c(0.005, 0.995))
@@ -442,6 +464,8 @@ mean(muestras_precisas_clase_2 < 247)
 
 pnorm(247, mean = mu_post_1, sd = sigma_post_1)
 pnorm(247, mean = mu_post_2, sd = sigma_post_2)
+
+```
 
 
 RESPUESTA 
@@ -518,14 +542,17 @@ Me ha parecido una herramienta adicional muy útil. Aunque al principio parece c
 
 CÁLCULO 
 
+```{r}
 # Probabilidad de que la media de la clase 2 sea mayor que la de la clase 1 MÉTODO MONTECARLO
 
 prob_mc <- mean(muestras_precisas_clase_2 > muestras_precisas_clase_1)
 prob_mc
+```
 
 RESPUESTA: PROBABILIDAD DE QUE LA MEDIA DE LA CLASE 2 SEA MAYOR QUE LA DE LA CLASE 1
 0.1446
 
+```{r}
 #Probabilidad de que la media de la clase 2 sea mayor que la de la clase 1 MÉTODO ANALÍTICO
 
 # Diferencia de medias
@@ -537,6 +564,7 @@ sigma_diff <- sqrt(sigma_post_1^2 + sigma_post_2^2)
 # Probabilidad de que la media de clase 2 sea mayor que la de clase 1
 prob_analitica <- 1 - pnorm(0, mean = mu_diff, sd = sigma_diff)
 prob_analitica
+```
 
 RESPUESTA: PROBABILIDAD DE QUE LA MEDIA DE LA CLASE 2 SEA MAYOR QUE LA DE LA CLASE 1
 0.1447
@@ -551,6 +579,7 @@ Es más fácil e intuitivo el cálculo de Monte Carlo porque solo hay que compar
 
 ::: {#respuesta-9 .callout-note}
 
+```{r}
 # Obtener las muestras de las distribuciones posteriores
 set.seed(20250318)  
 
@@ -567,7 +596,7 @@ prob_aleatorizada <- mean(muestras_precisas_clase_2_aleatorizada > muestras_prec
 # Paso 5: Comparar las probabilidades
 prob_original
 prob_aleatorizada
-
+```
 
 RESPUESTAS 
 
@@ -632,7 +661,7 @@ El estimador MAP es `{r} moda`, siendo su densidad `{r} densidad_max`.
 
 ::: {#respuesta-10 .callout-note}
 
-
+```{r}
 # Estimador MAP utilizando las muestras posteriores
 map_clase_1 <- mean(muestras_precisas_clase_1)
 map_clase_2 <- mean(muestras_precisas_clase_2)
@@ -646,6 +675,9 @@ map_clase_1
 map_clase_2
 mu_post_1_analitico
 mu_post_2_analitico
+
+```
+
 
 RESPUESTA 
 
@@ -683,6 +715,7 @@ La distribución Gamma está implementada en R mediante la familia de funciones 
 -   Utilizando un eje horizontal con precisión de .002, representa las dos distribuciones. Determina los límites del eje horizontal según tu propio criterio. Sin ver la forma de la función de densidad, ¿podrías deducir cuál habría de ser alguno de los dos límites del intervalo?
 
 ::: {#respuesta-11 .callout-note}
+```{r}
 
 # Parámetros de las distribuciones Gamma
 shape_sin <- 219
@@ -709,6 +742,8 @@ lines(x_vals, y_con, col = "red", lwd = 2)
 legend("topright", legend = c("Sin título universitario", "Con título universitario"), 
        col = c("blue", "red"), lwd = 2)
 
+```
+
 
 RESPUESTA 
 
@@ -722,6 +757,7 @@ Alguno de los dos límites del intervalo debe ser en referencia a la media. El v
 
 ::: {#respuesta-12 .callout-note}
 
+```{r}
 # Definir parámetros
 n_muestras <- 18284  # Tamaño de la muestra
 
@@ -732,6 +768,7 @@ muestras_con_titulo <- rgamma(n_muestras, shape = 68, scale = 45)
 # Calcular la probabilidad de que las mujeres sin título tengan tasa de fertilidad superior
 probabilidad_mc <- mean(muestras_sin_titulo > muestras_con_titulo)
 probabilidad_mc
+```
 
 RESPUESTA 
 
