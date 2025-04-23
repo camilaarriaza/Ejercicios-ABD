@@ -354,8 +354,8 @@ set.seed(20250419)
 n_necesario # ← debería mostrarte un número tipo 6000–8000 aprox.
 
 # Nuevas muestras
-nuevas_muestras_clase_1 <- rnorm(n_necesario, mean = mu_post_clase_1, sd = sqrt(sigma2_post_clase_1))
-nuevas_muestras_clase_2 <- rnorm(n_necesario, mean = mu_post_clase_2, sd = sqrt(sigma2_post_clase_2))
+nuevas_muestras_clase_1 <- rnorm(n_necesario, mean = mu_post_1, sd = sqrt(sigma2_post_1))
+nuevas_muestras_clase_2 <- rnorm(n_necesario, mean = mu_post_2, sd = sqrt(sigma2_post_2))
 
 # Estimar medias
 media_nueva_1 <- mean(nuevas_muestras_clase_1)
