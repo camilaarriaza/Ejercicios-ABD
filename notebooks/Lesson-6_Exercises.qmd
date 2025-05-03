@@ -889,7 +889,6 @@ valor_p_ppc_3omas <- mean(prop_3omas_sim >= prop_real_con_3omas)
 valor_p_ppc_3omas
 
 ```
-
 Respuesta: he propuesto una comprobación predictiva posterior basada en el porcentaje de mujeres con título universitario que tienen 3 o más hijos. El valor p predictivo posterior obtenido fue de 0.484. Esto indica que el 48.4% de las simulaciones producen una proporción igual o mayor que la observada. Este valor es alto, por tanto concluyo que el modelo reproduce bien este aspecto de los datos: la proporción de mujeres con título y con 3 o más hijos es compatible con la predicción del modelo. 
 :::
 
