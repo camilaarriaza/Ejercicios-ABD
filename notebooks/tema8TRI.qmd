@@ -31,8 +31,8 @@ library(tidyverse)
 library(dplyr)
 library(readr)
 
-# Leer CSV con separador punto y coma
-pisa <- read_csv2("~/Documents/Máster Metodología de las ciencias del comportamiento y de la salud/Análisis Bayesiano/tema 8/tarea final/datos/PISA_2000 (2).csv")
+library(here)
+pisa <- read_csv2(here("dat", "PISA_2000 (2).csv"))
 
 # Seleccionar ítems (todos empiezan con "R")
 items <- pisa %>% select(starts_with("R"))
