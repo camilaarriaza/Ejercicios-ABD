@@ -3,15 +3,6 @@ title: "tema8TRI"
 format: html
 ---
 
----
-title: "tema 8"
-output: html_document
----
-
----
-title: "ejercicios-tema-8"
-output: html_document
----
 Introducción
 
 Este trabajo pretende aplicar el uso del análisis bayesiano a la teoría de respuesta al ítem. Para realizar esta aplicación, se utilizan las respuestas a ítems del test PISA 2000. Los ítems de esta prueba evalúan la comprensión lectora a través de diversos formatos y grados de dificultad. El enfoque de la TRI será el modelo de Rash o de 1PL y mediante este se estimarán parámetros de dificultad por ítem y nivel de habilidad de cada estudiante. Sin embargo, en lugar de estimar un valor puntual por parámetro, estimaré una distribución posterior. Además, para evaluar el ajuste del modelo, utilizaré comprobaciones predictivas posteriores. 
@@ -33,6 +24,8 @@ library(readr)
 
 library(here)
 pisa <- read_csv2(here("dat", "PISA_2000 (2).csv"))
+
+renv::snapshot()
 
 # Seleccionar ítems (todos empiezan con "R")
 items <- pisa %>% select(starts_with("R"))
