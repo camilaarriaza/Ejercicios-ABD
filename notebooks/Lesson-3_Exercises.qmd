@@ -1,5 +1,5 @@
 ---
-title: "Tema 3: Ejercicios"
+title: "Tema 3: Ejercicios (PEC corregida)"
 format:
   html:
     code-copy:       true
@@ -9,24 +9,25 @@ format:
     toc:             true
     toc-location:    left
 callout-appearance: minimal
+execute:
+  echo: true
+  warning: false
+  message: false
 ---
+
 
 # Introducción
 
-En este hemos visto los fundamentos del modelado Bayesiano, y vamos a aplicarlos desde un punto de vista teórico en los ejercicios a continuación.
+En este tema hemos visto los fundamentos del modelado Bayesiano, y vamos a aplicarlos desde un punto de vista teórico en los ejercicios a continuación.
 
 En primer lugar, configuramos el entorno para ejecutar el código.
 
-```{r setup}
-#| message: false
-
+```{r}
 # Paquetes:
 library(tidyverse)
 library(RColorBrewer)
 
-
 # Configuración de la salida gráfica:
-
 PALETA <- brewer.pal(8, "Set2") # Colores por defecto
 color_defecto  <- PALETA[1]
 options(ggplot2.discrete.colour = PALETA)
@@ -34,77 +35,63 @@ options(ggplot2.discrete.colour = PALETA)
 theme_set(theme_bw()) # Tema "neutro" para la representación gráfica
 ```
 
-Verás que solamente necesitamos el paquete {tidyverse}, para manipular datos, y configurar la salida gráfica (el paquete {RColorBrewer} sólo se utiliza para obtener una paleta de colores agradable y accesible para personas con ceguera al color).
-No hace falta ningún paquete para análisis y modelado Bayesiano, ya que los modelos que vamos a estimar se basan en las propiedades analíticas de las *distribuciones conjugadas*.
+Verás que solamente necesitamos el paquete {tidyverse}, para manipular datos, y configurar la salida gráfica (el paquete {RColorBrewer} sólo se utiliza para obtener una paleta de colores agradable y accesible para personas con ceguera al color). No hace falta ningún paquete para análisis y modelado Bayesiano, ya que los modelos que vamos a estimar se basan en las propiedades analíticas de las *distribuciones conjugadas*.
 
 # Ejercicio 1
 
 ## Distribución uniforme
 
-A continuación se muestra el código en R para representar la distribución uniforme $x \sim U(0, 1)$:
+A continuación se muestra el código en R para representar la distribución uniforme \$x \sim U(0, 1)\$:
 
-```{r ejemplo-uniforme}
-PREC     <- 1e-3 # Precisión para representar la función de densidad (milésimas)
-DENS_INF <- 0    # Rango inferior de la función de densidad
-DENS_SUP <- 1    # Rango superior de la función de densidad
+```{r}
+PREC     <- 1e-3
+DENS_INF <- 0
+DENS_SUP <- 1
 
-uniforme <- tibble( # Esta función crea un "data.frame" o tabla de datos
+uniforme <- tibble(
   variable = seq(from = DENS_INF, to = DENS_SUP, by = PREC),
-  densidad = variable |> dunif(min = DENS_INF, max = DENS_SUP)
+  densidad = dunif(variable, min = DENS_INF, max = DENS_SUP)
 )
 
-uniforme |> glimpse() # Muestra el objeto con los datos, contiene 2 columnas 
+ggplot(data = uniforme, aes(x = variable, y = densidad)) +
+  geom_line(color = color_defecto) +
+  ylim(0, max(uniforme$densidad))
 
-uniforme |> # Usando la tabla de datos antes creada, crea un objeto gráfico
-  ggplot(mapping = aes(x = variable, y = densidad)) + # "Mapea" columnas a
-                                                      #   coordenadas
-  geom_line(color = color_defecto) + # Representa mediante una línea continua
-  
-  ylim( # Fija el límite inferior a 0 para mostrar el eje y completo:
-    0,  # (Usa la propia distribución para establecer el límite superior)
-    uniforme |> pull(densidad) |> max()
-  )
 ```
 
 ## Distribución normal
 
-Aplicando un código similar, se puede representar una distribución normal estandarizada $x \sim N(0, 1)$:
+Aplicando un código similar, se puede representar una distribución normal estandarizada \$x \sim N(0, 1)\$:
 
-```{r ejemplo-normal}
-DENS_INF <- -4 # Usamos un rango más adecuado para la normal estandarizada
+```{r}
+DENS_INF <- -4
 DENS_SUP <-  4
 
-normal <- tibble( # Reutilizamos `PREC` del "chunk" de código anterior
+normal <- tibble(
   variable = seq(from = DENS_INF, to = DENS_SUP, by = PREC),
-  densidad = variable |> dnorm()
+  densidad = dnorm(variable)
 )
 
-# Al cubrir la distribución el rango desde 0 hasta el máximo, en este caso no
-#   es necesario establecer los límites manualmente
-normal |>
-  ggplot(mapping = aes(x = variable, y = densidad)) +
+ggplot(data = normal, aes(x = variable, y = densidad)) +
   geom_line(color = color_defecto)
+
 ```
 
-Como puedes ver, los límites se establecen automáticamente para cubrir todo el rango de la distribución (no hace falta fijarlos).
-Al haber valores próximos a 0, tampoco es necesario establecer el límite inferior manualmente.
+Como puedes ver, los límites se establecen automáticamente para cubrir todo el rango de la distribución (no hace falta fijarlos). Al haber valores próximos a 0, tampoco es necesario establecer el límite inferior manualmente.
 
 ## Integración "numérica"
 
 Haciendo uso de los valores generados de una distribución, podemos operar con ellos para obtener los resultados de "integrar" esa función, pero haciéndolo de forma numérica.
 
-Al obtener "valores equiespaciados" de la distribución, lo que estamos obteniendo es una "rejilla" de valores.
-La integración será una suma de "rectángulos", de altura igual a la densidad en ese punto, con base centrada en ese punto y extenciéndose `PREC/2` hacia cada lado (y por tanto de anchura `PREC`).
+Al obtener valores equiespaciados de la distribución, lo que estamos obteniendo es una "rejilla" de valores. La integración será una suma de rectángulos, de altura igual a la densidad en ese punto, con base centrada en ese punto y extendiéndose `PREC/2` hacia cada lado (anchura `PREC`).
 
-Utilizando esta "integral numérica", podemos obtener ciertos valores de la distribución.
-Por ejemplo, la integral en todo el dominio de la variable debería tener un valor de 1.
+Utilizando esta integral numérica, podemos obtener ciertos valores de la distribución. Por ejemplo, la integral en todo el dominio de la variable debería tener un valor de 1.
 
-```{r integral-uniforme}
+```{r}
 uniforme |> summarize(integral = PREC * sum(densidad))
 ```
 
-En el caso de la distribución uniforme, tenemos valores "centrados" en 0 y 1, por lo que los intervalos de los extremos se extienden hasta `-PREC/2` y `1 + PREC/2`.
-Podríamos "restar medio valor" de la densidad en cada extremo para obtener una integral más precisa:
+En el caso de la distribución uniforme, tenemos valores centrados en 0 y 1, por lo que los intervalos de los extremos se extienden hasta `-PREC/2` y `1 + PREC/2`. Podríamos restar medio valor de la densidad en cada extremo para obtener una integral más precisa:
 
 ```{r}
 uniforme |> summarize(
@@ -114,43 +101,37 @@ uniforme |> summarize(
 
 En el caso de la distribución normal el cálculo de la integral se haría igual:
 
-```{r integral-normal}
-normal |> summarize(
-  integral = sum(densidad) * PREC
-)
+```{r}
+normal |> summarize(integral = sum(densidad) * PREC)
 ```
 
-En este caso, el dominio es infinito, pero nos hemos restringido al rango $[`{r} DENS_INF`, `{r} DENS_SUP`]$.
-Por lo tanto, estamos desechando la parte de la distribución que está en las "colas".
-También, cuanto mayor sea la precisión, más se acercará la aproximación mediante "rectángulos" a la curva real.
+En este caso, el dominio es infinito, pero nos hemos restringido al rango \[`r DENS_INF`, `r DENS_SUP`]. Por lo tanto, estamos desechando la parte de la distribución que está en las colas. También, cuanto mayor sea la precisión, más se acercará la aproximación mediante rectángulos a la curva real.
 
-```{r integral-normal-mas-precisa}
-tibble( # Ampliando el rango a [-10, 10]:
+```{r}
+# Ampliando el rango a [-10, 10]
+tibble(
   variable = seq(from = -10, to = 10, by = PREC),
-  densidad = variable |> dnorm()
-) |>
-  summarize(integral = sum(densidad) * PREC)
+  densidad = dnorm(variable)
+) |> summarize(integral = sum(densidad) * PREC)
 
-tibble( # Usando precisión de "millonésimas":
+# Usando precisión de millonésimas en el rango [-4,4]
+tibble(
   variable = seq(from = DENS_INF, to = DENS_SUP, by = 1e-6),
-  densidad = variable |> dnorm()
-) |>
-  summarize(integral = sum(densidad) * 1e-6) # Misma precisión en la integral
+  densidad = dnorm(variable)
+) |> summarize(integral = sum(densidad) * 1e-6)
 ```
 
-En general, las aproximaciones iniciales pueden ser válidas.
-Si lo necesitamos, podemos "normalizar" por la integral.
-Los siguiente ejemplos, triviales, pueden ayudarnos más adelante:
+En general, las aproximaciones iniciales pueden ser válidas. Si lo necesitamos, podemos normalizar por la integral. Los siguientes ejemplos, triviales, pueden ayudarnos más adelante:
 
-```{r integral-normalizada}
+```{r}
 uniforme |> summarize(
   integral = PREC * sum(densidad),
-  integral = integral / integral # Normalización
+  integral_norm = integral / integral # Normalización (=1)
 )
 
 normal |> summarize(
   integral = PREC * sum(densidad),
-  integral = integral / integral # Normalización
+  integral_norm = integral / integral # Normalización (=1)
 )
 ```
 
@@ -160,70 +141,63 @@ Calcula o comprueba las siguientes respuestas usando comandos de R:
 
 ### Pregunta 1
 
--   ¿Cuál es el valor máximo de la función de densidad?
+* ¿Cuál es el valor máximo de la función de densidad (para \$N(0,1)\$)?
 
-::: {#respuesta-1 .callout-note}
+\::: callout-note
 
-mu <- 0  # Media
-sigma <- 1  # Desviación estándar
-
-densidad <- dnorm(seq(-5, 5, by = 0.1), mean = mu, sd = sigma)
-
+```{r}
+mu <- 0; sigma <- 1
+x  <- seq(-5, 5, by = 0.1)
+densidad <- dnorm(x, mean = mu, sd = sigma)
 max(densidad)
+```
 
-La respuesta es: 0.3989423
-
-:::
+**Respuesta:** 0.3989423 (≈ \$1/\sqrt{2\pi}\$).
+\:::
 
 ### Pregunta 2
 
--   ¿Para qué valor de la variable aleatoria se da? ¿Cómo llamarías a ese valor?
+* ¿Para qué valor de la variable aleatoria se da? ¿Cómo llamarías a ese valor?
 
-::: {#respuesta-2 .callout-note}
-Se da para el valor de la media. Es decir 0. 
-
-#nombre de el valor máximo
-max_value <- mu
-:::
+\::: callout-note
+**Se da en** `r mu`. Ese valor es la **media** y también la **mediana** y la **moda** de la normal estándar.
+\:::
 
 ### Pregunta 3
 
--   El valor máximo, ¿puede ser mayor que 1? Justifica tu respuesta.
+* El valor máximo, ¿puede ser mayor que 1? Justifica tu respuesta.
 
-::: {#respuesta-3 .callout-note}
-No es posible porque la función de densidad debe dar como resultado de la integración: 1 (como se observa arriba). 
-:::
+\::: callout-note
+Sí, **en general una densidad puede superar 1** si su soporte es suficientemente estrecho (p. ej., \$U(0,0.5)\$ tiene densidad 2). Lo que **no** puede superar 1 es la **integral** de la densidad en todo su dominio. Para \$N(0,1)\$ el máximo es ≈0.399.
+\:::
 
 ### Pregunta 4
 
--   Calcula y representa la función de distribución de la variable normal
+* Calcula y representa la función de distribución (CDF) de la normal.
 
-*(Ejecuta `?cumsum` para consultar la ayuda de esa función).*
+\::: callout-note
 
-?cumsum
-
-::: {#respuesta-4 .callout-note}
-
+```{r}
 x <- seq(-5, 5, by = 0.1)
-y <- pnorm(x, mean = mu, sd = sigma)
+F <- pnorm(x, mean = mu, sd = sigma)
+plot(x, F, type = "l", main = "Función de distribución acumulada N(0,1)",
+     xlab = "x", ylab = "F(x)")
+```
 
-plot(x, y, type = "l", col = "blue", main = "Función de Distribución Acumulada Normal", xlab = "x", ylab = "F(x)")
-:::
+\:::
 
 ### Pregunta 5
 
--   Calcula el valor esperado de la distribución normal.
+* Calcula el valor esperado de la distribución normal.
 
-::: {#respuesta-5 .callout-note}
+\::: callout-note
 
-esperado <- mu
-esperado
+```{r}
+mu
+```
 
-El valor esperado de la distribución normal es su media. 
-
-El valor esperado es: 0
-
-:::
+**El valor esperado es la media:** `r mu`.
+\:::
 
 # Ejercicio 2
 
@@ -231,502 +205,342 @@ El valor esperado es: 0
 
 ### Pregunta 6
 
--   Representa una distribución Beta con parámetros $\alpha$ = $\beta$ = 1, $Beta(1, 1)$. Ajusta los ejes correctamente, si hace falta, como en la distribución uniforme.
+* Representa una distribución \$\text{Beta}(1,1)\$.
 
-*(Si no sabes qué limites utilizar, consulta la ayuda de `dbeta()`).*
+\::: callout-note
 
-::: {#respuesta-6 .callout-note}
-
-alpha <- 1
-beta <- 1
-
-x <- seq(0, 1, length.out = 100)
-
+```{r}
+alpha <- 1; beta <- 1
+x <- seq(0, 1, length.out = 1000)
 y <- dbeta(x, shape1 = alpha, shape2 = beta)
+plot(x, y, type = "l", lwd = 2, col = color_defecto,
+     main = "Distribución Beta(1,1)", xlab = "x", ylab = "Densidad")
+```
 
-plot(x, y, type = "l", col = "blue", lwd = 2, 
-     main = "Distribución Beta(1, 1)", xlab = "x", ylab = "Densidad")
-
-:::
+\:::
 
 ### Pregunta 7
 
--   ¿Qué forma tiene?
+* ¿Qué forma tiene?
 
-::: {#respuesta-7 .callout-note}
-Tiene la forma de una linea recta. Como una distribución uniforme. 
-:::
+\::: callout-note
+Es **uniforme en \[0,1]** (línea horizontal).
+\:::
 
 ## Parámetros de la distribución Beta
 
 ### Pregunta 8
 
--   Prueba con diferentes valores de $\alpha$ y $\beta$.
+* Prueba con diferentes valores de \$\alpha\$ y \$\beta\$.
 
-::: {#respuesta-8 .callout-note}
+\::: callout-note
 
-alpha <- 2
-beta <- 5
-y <- dbeta(x, shape1 = alpha, shape2 = beta)
+```{r}
+alpha <- 2; beta <- 5
+y <- dbeta(x, alpha, beta)
+plot(x, y, type = "l", lwd = 2, col = color_defecto,
+     main = sprintf("Beta(%d,%d)", alpha, beta), xlab = "x", ylab = "Densidad")
+```
 
-plot(x, y, type = "l", col = "red", lwd = 2, 
-     main = paste("Distribución Beta(", alpha, ",", beta, ")", sep = ""),
-     xlab = "x", ylab = "Densidad")
-
-
-:::
+\:::
 
 ### Pregunta 9
 
--   ¿Qué ocurre a medida que van creciendo?
+* ¿Qué ocurre a medida que van creciendo?
 
-::: {#respuesta-9 .callout-note}
-
-La distribución se acerca más a la media. 
-
-:::
+\::: callout-note
+La densidad se **concentra** alrededor de su esperanza \$\alpha/(\alpha+\beta)\$ y la distribución se vuelve **más picuda** (menor varianza) al crecer \$\alpha\$ y \$\beta\$ manteniendo su razón.
+\:::
 
 ### Pregunta 10
 
--   ¿Qué ocurre cuando son iguales? ¿Y cuándo son distintos?
+* ¿Qué ocurre cuando son iguales? ¿Y cuando son distintos?
 
-::: {#respuesta-10 .callout-note}
-
-Cuando son iguales la distribución es simétrica. Cuando son distintos la distribución se mueve hacia uno de los dos extremos.
-
-:::
+\::: callout-note
+Si **\$\alpha=\beta\$**, la distribución es **simétrica** en 0.5. Si son **distintos**, la distribución es **asimétrica** hacia el extremo con el parámetro mayor.
+\:::
 
 ### Pregunta 11
 
--   ¿Qué ocurre si tienen valores ligeramente superiores a 1?
+* ¿Qué ocurre si tienen valores ligeramente superiores a 1?
 
-::: {#respuesta-11 .callout-note}
-La distribución se centra en torno a la media. 
-:::
+\::: callout-note
+La densidad es **finita en los bordes** y su forma depende de la relación \$\alpha\$/\$\beta\$; con ambos ligeramente >1 suele verse **suave** sin picos en 0 o 1.
+\:::
 
 ### Pregunta 12
 
--   ¿Qué ocurre si tienen valores por debajo de 1?
+* ¿Qué ocurre si tienen valores por debajo de 1?
 
-::: {#respuesta-12 .callout-note}
-La distribución estará entre 0 y 1 y tendrá una forma de U. 
-:::
+\::: callout-note
+Aparecen **picos en los extremos** (forma de "U" si ambos <1; si solo uno <1, la masa se concentra en un extremo).
+\:::
 
-# Ejercicio 3
+# Ejercicio 3 — Modelo beta–binomial
 
-*(NOTA: Para todas las distribuciones, utiliza el valor de `PREC` definido en el ejercicio 1.)*
-
-## Modelo beta-binomial
-
-En el departamento de investigación de mercado de tu empresa quieren saber la tasa de aceptación de la nueva app que quieren lanzar.
-Para ello, han probado la app con una muestra (asume m.a.s.) de $n$ potenciales usuarios/as, y se las pedido que indiquen si descargarían o no la app.
-
-El jefe del departamento de analítica te asigna al proyecto y te pide que ajustes un modelo beta-binomial "no informativo" para responder a la pregunta de investigación.
+En el departamento de investigación de mercado se quiere estimar la **tasa de aceptación** de una nueva app. Se toma una muestra (m.a.s.) de tamaño \$n\$ y se registra si la descargarían.
 
 ### Pregunta 13
 
--   ¿Cómo se representa la "tasa de aceptación" en el modelo?
+* ¿Cómo se representa la tasa de aceptación en el modelo?
 
-::: {#respuesta-13 .callout-note}
-con el parámetro θ.
-:::
+\::: callout-note
+Se representa por \$\theta\in(0,1)\$.
+\:::
 
 ### Pregunta 14
 
--   ¿Qué distribución previa utilizarías para esa tasa de aceptación? Formúlala y represéntala gráficamente.
+* ¿Qué distribución previa utilizarías? Formúlala y represéntala.
 
-*(Ajusta los ejes correctamente, si hace falta, como en la distribución uniforme).*
+\::: callout-note
+Usamos una previa **no informativa** \$\theta\sim\text{Beta}(1,1)\$.
 
-::: {#respuesta-14 .callout-note}
-La distribución uniforme Beta (1,1). Es decir no hay ninguna preferencia inicial.
+```{r}
+alpha_prior <- 1; beta_prior <- 1
+x <- seq(0, 1, by = 0.001)
+prior_values <- dbeta(x, alpha_prior, beta_prior)
+plot(x, prior_values, type = "l", lwd = 2, col = color_defecto,
+     main = "Previo Beta(1,1)", xlab = expression(theta), ylab = "Densidad")
+```
 
-alpha_prior <- 1
-beta_prior <- 1
-
-x <- seq(0, 1, length.out = 100)
-
-y_prior <- dbeta(x, shape1 = alpha_prior, shape2 = beta_prior)
-
-plot(x, y_prior, type = "l", col = "blue", lwd = 2, 
-     main = "Distribución Beta(1, 1) - Distribución Previa",
-     xlab = "Tasa de aceptación", ylab = "Densidad")
-:::
+\:::
 
 ### Pregunta 15
 
--   Supón que $y$ es el número de usuarios/as que han respondido que "Sí" descargarían la app. Formula la verosimilitud del modelo.
+* Verosimilitud para \$y\sim\text{Binomial}(n,\theta)\$.
 
-::: {#respuesta-15 .callout-note}
+\::: callout-note
 
-verosimilitud <- function(y, n, theta) {
-  # Calcula la verosimilitud binomial P(y | theta)
-  return(choose(n, y) * (theta^y) * ((1 - theta)^(n - y)))
+```{r}
+verosimilitud <- function(y, n, theta){
+  choose(n, y) * theta^y * (1-theta)^(n-y)
 }
-verosimilitud_resultado <- verosimilitud(y, n, theta)
-verosimilitud_resultado
+```
 
-:::
+\:::
 
-## Ajuste del modelo
+## Ajuste con la primera muestra
 
--   El departamento de investigación de mercado te da acceso a los siguientes datos de la muestra:
-
-```{r beta-binomial-muestra}
+```{r}
 aceptacion_muestra <- tibble(
   id_participante   = 1:22,
   resp_descarga_app = c(
-    "Si", "Si", "No", "No", "Si", "Si", "Si", "Si", "No", "Si", "Si",
-    "Si", "Si", "Si", "Si", "Si", "No", "Si", "No", "Si", "Si", "Si"
+    "Si","Si","No","No","Si","Si","Si","Si","No","Si","Si",
+    "Si","Si","Si","Si","Si","No","Si","No","Si","Si","Si"
   )
 )
+
+y1 <- sum(aceptacion_muestra$resp_descarga_app == "Si")
+n1 <- nrow(aceptacion_muestra)
+y1; n1; y1/n1
 ```
 
 ### Pregunta 16
 
--   Obtén, en base a estos datos, la distribución posterior de la tasa de aceptación (en forma analítica), y represéntala junto a la distribución previa.
+* Posterior analítica y comparación con el previo.
 
-::: {#respuesta-16 .callout-note}
-library(tidyverse)
+\::: callout-note
 
-# Datos de la muestra
-aceptacion_muestra <- tibble(
-  id_participante = 1:22,
-  resp_descarga_app = c(
-    "Si", "Si", "No", "No", "Si", "Si", "Si", "Si", "No", "Si", "Si",
-    "Si", "Si", "Si", "Si", "Si", "No", "Si", "No", "Si", "Si", "Si"
-  )
-)
+```{r}
+alpha_post1 <- alpha_prior + y1   # 1+17 = 18
+beta_post1  <- beta_prior + (n1-y1) # 1+5  = 6
+post1 <- dbeta(x, alpha_post1, beta_post1)
+plot(x, prior_values, type = "l", lwd = 2, col = "grey60",
+     xlab = expression(theta), ylab = "Densidad",
+     main = "Previo vs Posterior (muestra 1)")
+lines(x, post1, lwd = 2, col = color_defecto)
+legend("topright", c("Previo Beta(1,1)", sprintf("Posterior Beta(%d,%d)",
+       alpha_post1, beta_post1)), lwd = 2, col = c("grey60", color_defecto))
+```
 
-# Número de respuestas "Sí"
-y <- sum(aceptacion_muestra$resp_descarga_app == "Si")
-n <- nrow(aceptacion_muestra)
-
-# Parámetros de la distribución previa (Beta(1, 1))
-alpha_prior <- 1
-beta_prior <- 1
-
-
-# Parámetros de la distribución posterior
-alpha_post <- alpha_prior + y
-beta_post <- beta_prior + (n - y)
-
-# Graficar la distribución previa y posterior
-theta_values <- seq(0, 1, by = 0.01)
-
-# Distribución previa (Beta(1, 1))
-prior_values <- dbeta(theta_values, alpha_prior, beta_prior)
-
-# Distribución posterior
-posterior_values <- dbeta(theta_values, alpha_post, beta_post)
-
-# Gráfica
-plot(theta_values, prior_values, type = "l", col = "blue", lwd = 2,
-     xlab = "Tasa de aceptación", ylab = "Densidad", 
-     main = "Distribución previa y posterior de la tasa de aceptación")
-lines(theta_values, posterior_values, col = "red", lwd = 2)
-legend("topright", legend = c("Previo", "Posterior"), col = c("blue", "red"), lwd = 2)
-
-
-
-:::
+\:::
 
 ### Pregunta 17
 
--   Obtén el valor esperado y la moda de la distribuión posterior. ¿Cómo los interpretarías?
+* Valor esperado y moda de la posterior. Interpretación.
 
-*(Nota: Ten en cuenta la "precisión" al calcular el "peso" de cada muestra.)*
+\::: callout-note
 
-::: {#respuesta-17 .callout-note}
+```{r}
+EV1   <- alpha_post1/(alpha_post1+beta_post1)           # 18/24 = 0.75
+mode1 <- (alpha_post1-1)/(alpha_post1+beta_post1-2)     # 17/22 ≈ 0.7727
+c(esperanza = EV1, moda = mode1)
+```
 
-# Valor esperado y moda de la distribución posterior
-expected_value <- alpha_post / (alpha_post + beta_post)
-mode_value <- ifelse(alpha_post > 1 & beta_post > 1, 
-                     (alpha_post - 1) / (alpha_post + beta_post - 2), 
-                     NA) # No está definida si alpha o beta <= 1
+**Interpretación:** la mejor predicción en promedio (MSE) para \$\theta\$ es 0.75, mientras que el valor más probable (moda) es ≈0.773. Con pocos datos, la moda puede diferir de la esperanza.
+\:::
 
-expected_value
-mode_value
+## Nueva muestra
 
-Valor esperado: 0,75
-Valor de la media: 0,7727273
-
-:::
-
-## Ajuste con una nueva muestra
-
--   El director de investigación de mercado no está totalmente seguro con los resultados, y pide a su departamento recoger una nueva muestra, mayor, para el estudio. Te dan acceso a los siguientes datos de la nueva muestra:
-
-```{r beta-binomial-muestra2}
+```{r}
 aceptacion_muestra_2 <- tibble(
   id_participante   = 1:113,
   resp_descarga_app = c(
-    "Si", "Si", "No", "No", "Si", "Si", "Si", "Si", "No", "Si", "Si",
-    "Si", "Si", "Si", "Si", "Si", "No", "Si", "No", "Si", "Si", "Si", 
-    "No", "Si", "Si", "Si", "Si", "No", "No", "Si", "No", "Si", "Si", 
-    "Si", "Si", "Si", "No", "Si", "No", "No", "Si", "No", "Si", "Si", 
-    "No", "No", "No", "Si", "No", "No", "Si", "Si", "No", "No", "Si", 
-    "No", "Si", "No", "No", "No", "Si", "Si", "No", "Si", "Si", "No", 
-    "Si", "Si", "No", "Si", "Si", "No", "Si", "No", "Si", "No", "Si", 
-    "No", "No", "No", "Si", "Si", "No", "No", "Si", "Si", "No", "No", 
-    "No", "Si", "Si", "No", "Si", "Si", "No", "Si", "Si", "Si", "Si", 
-    "No", "Si", "No", "No", "No", "No", "No", "Si", "No", "No", "Si", 
-    "Si", "Si", "Si"
+    "Si","Si","No","No","Si","Si","Si","Si","No","Si","Si",
+    "Si","Si","Si","Si","Si","No","Si","No","Si","Si","Si",
+    "No","Si","Si","Si","Si","No","No","Si","No","Si","Si",
+    "Si","Si","Si","No","Si","No","No","Si","No","Si","Si",
+    "No","No","No","Si","No","No","Si","Si","No","No","Si",
+    "No","Si","No","No","No","Si","Si","No","Si","Si","No",
+    "Si","Si","No","Si","Si","No","Si","No","Si","No","Si",
+    "No","No","No","Si","Si","No","No","Si","Si","No","No",
+    "No","Si","Si","No","Si","Si","No","Si","Si","Si","Si",
+    "No","Si","No","No","No","No","No","Si","No","No","Si",
+    "Si","Si","Si"
   )
 )
+
+y2 <- sum(aceptacion_muestra_2$resp_descarga_app == "Si")
+n2 <- nrow(aceptacion_muestra_2)
+y2; n2; y2/n2
 ```
 
 ### Pregunta 18
 
--   ¿Qué distribución previa utilizarías en esta ocasión? Formúlala.
+* ¿Qué previo usar ahora?
 
-::: {#respuesta-18 .callout-note}
-
-Beta(1,1)
-
-:::
+\::: callout-note
+Se puede **seguir con Beta(1,1)** (reanálisis desde cero) **o** usar la **posterior previa** \$\text{Beta}(18,6)\$ como **nuevo previo** (actualización secuencial). Ambas dan lo mismo al final por la suficiencia de \$(y,n)\$.
+\:::
 
 ### Pregunta 19
 
--   Obtén la distribución posterior analítica después de esta segunda muestra, represéntala junto con las dos distribuciones anteriores, y obtén los estimadores posteriores esperado y modal.
+* Posterior tras las dos muestras y estimadores esperados/modales.
 
-::: {#respuesta-19 .callout-note}
-# Datos de la nueva muestra
-aceptacion_muestra_2 <- tibble(
-  id_participante = 1:113,
-  resp_descarga_app = c(
-    "Si", "Si", "No", "No", "Si", "Si", "Si", "Si", "No", "Si", "Si",
-    "Si", "Si", "Si", "Si", "Si", "No", "Si", "No", "Si", "Si", "Si", 
-    "No", "Si", "Si", "Si", "Si", "No", "No", "Si", "No", "Si", "Si", 
-    "Si", "Si", "Si", "No", "Si", "No", "No", "Si", "No", "Si", "Si", 
-    "No", "No", "No", "Si", "No", "No", "Si", "Si", "No", "No", "Si", 
-    "No", "Si", "No", "No", "No", "Si", "Si", "No", "Si", "Si", "No", 
-    "Si", "Si", "No", "Si", "Si", "No", "Si", "No", "Si", "No", "Si", 
-    "No", "No", "No", "Si", "Si", "No", "No", "Si", "Si", "No", "No", 
-    "No", "Si", "Si", "No", "Si", "Si", "No", "Si", "Si", "Si", "Si", 
-    "No", "Si", "No", "No", "No", "No", "No", "Si", "No", "No", "Si", 
-    "Si", "Si", "Si"
-  )
-)
+\::: callout-note
 
-# Número de respuestas "Sí" en la segunda muestra
-y_2 <- sum(aceptacion_muestra_2$resp_descarga_app == "Si")
-n_2 <- nrow(aceptacion_muestra_2)
+```{r}
+alpha_post2 <- alpha_post1 + y2         # 18 + 65 = 83
+beta_post2  <- beta_post1  + (n2 - y2)  #  6 + 48 = 54
+post2 <- dbeta(x, alpha_post2, beta_post2)
+plot(x, post1, type = "l", lwd = 2, col = "#66C2A5",
+     xlab = expression(theta), ylab = "Densidad",
+     main = "Posterior: muestra 1 vs (muestra 1 + 2)")
+lines(x, post2, lwd = 2, col = "#FC8D62")
+legend("topright",
+       c(sprintf("Post1 Beta(%d,%d)", alpha_post1, beta_post1),
+         sprintf("Post2 Beta(%d,%d)", alpha_post2, beta_post2)),
+       lwd = 2, col = c("#66C2A5", "#FC8D62"))
 
-# Nuevos parámetros de la distribución posterior
-alpha_post_2 <- alpha_prior + y + y_2
-beta_post_2 <- beta_prior + (n - y) + (n_2 - y_2)
+EV2   <- alpha_post2/(alpha_post2+beta_post2)         # 83/137 ≈ 0.6058
+mode2 <- (alpha_post2-1)/(alpha_post2+beta_post2-2)   # 82/135 ≈ 0.6074
+c(esperanza = EV2, moda = mode2)
+```
 
-# Graficar distribución posterior
-posterior_values_2 <- dbeta(theta_values, alpha_post_2, beta_post_2)
+\:::
 
-# Gráfica comparativa
-plot(theta_values, posterior_values, type = "l", col = "red", lwd = 2,
-     xlab = "Tasa de aceptación", ylab = "Densidad", 
-     main = "Distribución posterior con segunda muestra")
-lines(theta_values, posterior_values_2, col = "green", lwd = 2)
-legend("topright", legend = c("Posterior inicial", "Posterior con 2ª muestra"), col = c("red", "green"), lwd = 2)
+## Muestras colapsadas
 
-:::
-
-## Ajuste con las muestras colapsadas
-
-Supón que el director de investigación de mercado no estaba contento con la muestra inicial y pidió recoger más muestra antes de darte acceso a los datos.
-Cuando recibes los datos, recibes las dos muestras colapsadas, sin saber qué participantes eran de la primera o de la segunda muestra:
-
-```{r beta-binomial-muestra-total}
+```{r}
 aceptacion_muestra_total <- bind_rows(
   aceptacion_muestra, aceptacion_muestra_2
-) |>
-  mutate(id_participante = row_number()) # Los ID están colapsados en una serie
+) |> mutate(id_participante = row_number())
+
+y_tot <- sum(aceptacion_muestra_total$resp_descarga_app == "Si")
+n_tot <- nrow(aceptacion_muestra_total)
+alpha_post_tot <- alpha_prior + y_tot    # 1 + (17+65) = 83
+beta_post_tot  <- beta_prior + (n_tot - y_tot) # 1 + (5+48) = 54
+all.equal(c(alpha_post2, beta_post2), c(alpha_post_tot, beta_post_tot))
 ```
 
 ### Pregunta 20
 
--   Obtén la distribución posterior analítica después de esta segunda muestra, represéntala junto con las distribuciones anteriores, y obtén los estimadores posteriores esperado y modal.
+* Representa la posterior con muestras colapsadas y compara.
 
-::: {#respuesta-20 .callout-note}
+\::: callout-note
 
-# Datos combinados
-aceptacion_muestra_total <- bind_rows(aceptacion_muestra, aceptacion_muestra_2) %>%
-  mutate(id_participante = row_number())
+```{r}
+post_tot <- dbeta(x, alpha_post_tot, beta_post_tot)
+plot(x, post2, type = "l", lwd = 2, col = "#FC8D62",
+     xlab = expression(theta), ylab = "Densidad",
+     main = "Posterior con datos colapsados vs secuencial")
+lines(x, post_tot, lwd = 2, col = "#8DA0CB")
+legend("topright",
+       c("Secuencial (1→2)", "Colapsado"),
+       lwd = 2, col = c("#FC8D62", "#8DA0CB"))
 
-# Número de respuestas "Sí" en la muestra total
-y_total <- sum(aceptacion_muestra_total$resp_descarga_app == "Si")
-n_total <- nrow(aceptacion_muestra_total)
+EV_tot   <- alpha_post_tot/(alpha_post_tot+beta_post_tot)
+mode_tot <- (alpha_post_tot-1)/(alpha_post_tot+beta_post_tot-2)
+round(c(esperanza = EV_tot, moda = mode_tot), 6)
+```
 
-# Nuevos parámetros de la distribución posterior con la muestra total
-alpha_post_total <- alpha_prior + y_total
-beta_post_total <- beta_prior + (n_total - y_total)
-
-# Graficar distribución posterior total
-posterior_values_total <- dbeta(theta_values, alpha_post_total, beta_post_total)
-
-# Gráfica final
-plot(theta_values, posterior_values_2, type = "l", col = "green", lwd = 2,
-     xlab = "Tasa de aceptación", ylab = "Densidad", 
-     main = "Distribución posterior con las muestras colapsadas")
-lines(theta_values, posterior_values_total, col = "blue", lwd = 2)
-legend("topright", legend = c("Posterior con 2ª muestra", "Posterior con muestras colapsadas"), col = c("green", "blue"), lwd = 2)
-
-:::
+\:::
 
 ### Pregunta 21
 
--   ¿Qué concluyes de la respuesta anterior? ¿En qué se diferencia este enfoque del análisis de datos clásico o frecuentista?
+* Conclusión y diferencia con el enfoque frecuentista.
 
-::: {#respuesta-21 .callout-note}
-En el enfoque bayesiano usamos información previa y vamos actualizando nuestras creencias sobre la tasa de aceptación según obtenemos más datos. En el otro enfoque, solo se utiliza la muestra observada.
-:::
+\::: callout-note
+El enfoque bayesiano **actualiza** la creencia sobre \$\theta\$ combinando el previo y la verosimilitud; además, permite **actualización secuencial** o **análisis con datos colapsados** con el mismo resultado (por suficiencia). El enfoque frecuentista no incorpora previos y se centra en estimadores puntuales e intervalos basados en muestreo repetido.
+\:::
 
-# Ejercicio 4
+# Ejercicio 4 — Modelo normal–normal (varianza conocida por clase)
 
-*(NOTA: Para todas las distribuciones, utiliza el valor de `PREC` definido en el ejercicio 1.)*
+En un estudio educativo se mide el tiempo (segundos) de lectura de alumnado de 1º de ESO en **dos clases**. Se desea un **parámetro global** de la media de tiempos. Usaremos un modelo normal–normal con previo \$\mu\sim N(\mu\_0,\tau\_0^2)\$, con \$\mu\_0=247\$ y \$\tau\_0^2=1156\$.
 
-En un proyecto de investigación educativo, el equipo investigador ha evaluado la rapidez de lectura en las dos clases de 1º de ESO de un colegio.
-Los datos que te entregan consisten en el tiempo en segundos que tarda cada niño en leer un texto estandarizado.
+Los datos:
 
-Se quiere obtener un parámetro global promedio del tiempo de lectura para el alumnado de 1º de ESO en el colegio, para lo que te piden ajustar un modelo normal-normal.
-Se pide usar como distribución previa la estimada de la población, que tiene media y varianza de 247 y 1156, respectivamente.
-
-Los datos que te han facilitado son:
-
-```{r normal-normal-muestras}
+```{r}
 clase_1 <- tibble(
   id     = 1:27,
-  tiempo = c(
-    242, 249, 278, 273, 227, 257, 276, 236, 214, 141, 200, 201, 
-    228, 271, 160, 275, 156, 246, 293, 306, 263, 247, 224, 160, 277, 
-    168, 250
-  )
+  tiempo = c(242,249,278,273,227,257,276,236,214,141,200,201,
+             228,271,160,275,156,246,293,306,263,247,224,160,277,
+             168,250)
 )
 
 clase_2 <- tibble(
   id     = 1:24,
-  tiempo = c(
-    195, 176, 237, 258, 226, 254, 292, 212, 215, 298, 235, 244, 
-    144, 227, 166, 194, 261, 187, 224, 233, 180, 167, 193, 282
-  )
+  tiempo = c(195,176,237,258,226,254,292,212,215,298,235,244,
+             144,227,166,194,261,187,224,233,180,167,193,282)
 )
 ```
 
-## Modelo normal-normal
-
 ### Pregunta 22
 
--   Determina la verosimilitud y las distribuciones previa y posterior de la media, asumiendo que la varianza de la verosimilitud es la varianza de los datos. Justifica cómo has obtenido los parámetros de la distribución posterior (usa 2 decimales de precisión).
+* Verosimilitud y posterior de \$\mu\$, asumiendo que las **varianzas de verosimilitud** son las varianzas muestrales por clase.
 
-::: {#respuesta-22 .callout-note}
-library(tidyverse)
+\::: callout-note
+Para cada clase \$j=1,2\$ con \$n\_j\$, media \$\bar x\_j\$ y varianza muestral \$s\_j^2\$, si tomamos \$\sigma\_j^2=s\_j^2\$ como conocida,
+$\mu\mid\text{datos}\ \sim\ N\!\left(\ \frac{\mu_0/\tau_0^2 + \sum_j n_j\bar x_j/\sigma_j^2}{\,1/\tau_0^2 + \sum_j n_j/\sigma_j^2\,}\ ,\ \frac{1}{\,1/\tau_0^2 + \sum_j n_j/\sigma_j^2\,}\ \right).$
 
-# Datos de las clases
-clase_1 <- tibble(
-  id = 1:27,
-  tiempo = c(242, 249, 278, 273, 227, 257, 276, 236, 214, 141, 200, 201, 
-             228, 271, 160, 275, 156, 246, 293, 306, 263, 247, 224, 160, 
-             277, 168, 250)
-)
+```{r}
+mu_0 <- 247; tau0_2 <- 1156; tau0 <- sqrt(tau0_2)
 
-clase_2 <- tibble(
-  id = 1:24,
-  tiempo = c(195, 176, 237, 258, 226, 254, 292, 212, 215, 298, 235, 244, 
-             144, 227, 166, 194, 261, 187, 224, 233, 180, 167, 193, 282)
-)
+n1 <- nrow(clase_1); n2 <- nrow(clase_2)
+xb1 <- mean(clase_1$tiempo); xb2 <- mean(clase_2$tiempo)
+s2_1 <- var(clase_1$tiempo); s2_2 <- var(clase_2$tiempo)
 
-# Estimación de la media y varianza muestral
-media_clase_1 <- mean(clase_1$tiempo)
-media_clase_2 <- mean(clase_2$tiempo)
+mu_post <- (mu_0/tau0_2 + n1*xb1/s2_1 + n2*xb2/s2_2) /
+           (1/tau0_2    + n1/s2_1     + n2/s2_2)
+var_post <- 1 / (1/tau0_2 + n1/s2_1 + n2/s2_2)
+sd_post  <- sqrt(var_post)
 
-varianza_clase_1 <- var(clase_1$tiempo)
-varianza_clase_2 <- var(clase_2$tiempo)
+round(c(media_posterior = mu_post, var_posterior = var_post, sd_posterior = sd_post), 2)
+```
 
-n_clase_1 <- nrow(clase_1)
-n_clase_2 <- nrow(clase_2)
-
-# Datos previos
-mu_0 <- 247
-sigma_0_squared <- 1156
-sigma_0 <- sqrt(sigma_0_squared)
-
-# Media de la distribución posterior
-media_posterior <- (mu_0 / sigma_0_squared + n_clase_1 * media_clase_1 / varianza_clase_1 + n_clase_2 * media_clase_2 / varianza_clase_2) /
-                   (1 / sigma_0_squared + n_clase_1 / varianza_clase_1 + n_clase_2 / varianza_clase_2)
-
-# Varianza de la distribución posterior
-varianza_posterior <- 1 / (1 / sigma_0_squared + n_clase_1 / varianza_clase_1 + n_clase_2 / varianza_clase_2)
-
-# Resultado
-media_posterior
-sqrt(varianza_posterior)
-
-media posterior: 227,74
-Varianza posterior: 5,97
-
-:::
-
-## Estimación
+**Notas:** La **varianza posterior** es `r round(var_post,2)` y su **desviación típica** es `r round(sd_post,2)` (¡ojo: no confundir varianza con desviación!).
+\:::
 
 ### Pregunta 23
 
--   Representa las distribuciones previa y posterior de la media; considera un eje que cubra 4 desviaciones típicas a cada lado de la media de la distribución previa. Obten el estimador esperado y modal a partir de esta distribución y compáralos con la solución analítica de la pregunta anterior.
+* Representa previo y posterior de \$\mu\$ (eje: \$\mu\_0\pm 4,\tau\_0\$). Compara estimadores.
 
-::: {#respuesta-23 .callout-note}
-library(tidyverse)
+\::: callout-note
 
-# Datos de las clases
-clase_1 <- tibble(
-  id = 1:27,
-  tiempo = c(242, 249, 278, 273, 227, 257, 276, 236, 214, 141, 200, 201, 
-             228, 271, 160, 275, 156, 246, 293, 306, 263, 247, 224, 160, 
-             277, 168, 250)
-)
+```{r}
+xs <- seq(mu_0 - 4*tau0, mu_0 + 4*tau0, length.out = 1000)
+prev <- dnorm(xs, mean = mu_0, sd = tau0)
+post <- dnorm(xs, mean = mu_post, sd = sd_post)
+plot(xs, prev, type = "l", lwd = 2, col = "grey60",
+     xlab = "Tiempo de lectura (s)", ylab = "Densidad",
+     main = "Previo vs Posterior para la media global")
+lines(xs, post, lwd = 2, col = color_defecto)
+legend("topright", c("Previo N(247, 34^2)",
+                     sprintf("Posterior N(%.2f, %.2f^2)", mu_post, sd_post)),
+       lwd = 2, col = c("grey60", color_defecto))
 
-clase_2 <- tibble(
-  id = 1:24,
-  tiempo = c(195, 176, 237, 258, 226, 254, 292, 212, 215, 298, 235, 244, 
-             144, 227, 166, 194, 261, 187, 224, 233, 180, 167, 193, 282)
-)
+c(esperanza = mu_post, moda = mu_post)  # Normal: esperanza = moda
+```
 
-# Estimación de la media y varianza muestral
-media_clase_1 <- mean(clase_1$tiempo)
-media_clase_2 <- mean(clase_2$tiempo)
-
-varianza_clase_1 <- var(clase_1$tiempo)
-varianza_clase_2 <- var(clase_2$tiempo)
-
-n_clase_1 <- nrow(clase_1)
-n_clase_2 <- nrow(clase_2)
-
-# Datos previos
-mu_0 <- 247
-sigma_0_squared <- 1156
-sigma_0 <- sqrt(sigma_0_squared)
-
-# Media de la distribución posterior
-media_posterior <- (mu_0 / sigma_0_squared + n_clase_1 * media_clase_1 / varianza_clase_1 + n_clase_2 * media_clase_2 / varianza_clase_2) /
-                   (1 / sigma_0_squared + n_clase_1 / varianza_clase_1 + n_clase_2 / varianza_clase_2)
-
-# Varianza de la distribución posterior
-varianza_posterior <- 1 / (1 / sigma_0_squared + n_clase_1 / varianza_clase_1 + n_clase_2 / varianza_clase_2)
-
-# Crear el rango de valores para el eje X
-x_values <- seq(mu_0 - 4 * sigma_0, mu_0 + 4 * sigma_0, length.out = 100)
-
-# Calcular la densidad de la distribución previa y posterior
-previa <- dnorm(x_values, mean = mu_0, sd = sigma_0)
-posterior <- dnorm(x_values, mean = media_posterior, sd = sqrt(varianza_posterior))
-
-# Graficar las distribuciones previa y posterior
-plot(x_values, previa, type = "l", col = "blue", lwd = 2,
-     xlab = "Tiempo de lectura (segundos)", ylab = "Densidad", 
-     main = "Distribución previa y posterior de la media de tiempos de lectura")
-lines(x_values, posterior, col = "red", lwd = 2)
-legend("topright", legend = c("Distribución previa", "Distribución posterior"), col = c("blue", "red"), lwd = 2)
-
-# Estimador esperado y modal (en este caso son iguales)
-media_posterior
-
-La media posterior es 227,7545
-
-Comparado con la media de la distribución previa (247), la media posterior proporciona una estimación más precisa del tiempo promedio de lectura.
-
-:::
+**Comparación:** el estimador esperado/modal coincide con la solución analítica de la Pregunta 22 (ambos iguales en la normal).
+\:::

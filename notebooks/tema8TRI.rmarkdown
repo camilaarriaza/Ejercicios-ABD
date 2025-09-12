@@ -1,0 +1,133 @@
+---
+title: "tema8TRI"
+format: html
+---
+
+
+
+Introducción
+
+Este trabajo pretende aplicar el uso del análisis bayesiano a la teoría de respuesta al ítem. Para realizar esta aplicación, se utilizan las respuestas a ítems del test PISA 2000. Los ítems de esta prueba evalúan la comprensión lectora a través de diversos formatos y grados de dificultad. El enfoque de la TRI será el modelo de Rash o de 1PL y mediante este se estimarán parámetros de dificultad por ítem y nivel de habilidad de cada estudiante. Sin embargo, en lugar de estimar un valor puntual por parámetro, estimaré una distribución posterior. Además, para evaluar el ajuste del modelo, utilizaré comprobaciones predictivas posteriores. 
+
+Por tanto, para estimar la theta y dificultad, se utilizará el paquete brms de R que implementará métodos de muestreo de Markov Chain Monte Carlo para obtener distribuciones posteriores. Este método permitirá obtener incertidumbre mediante intervalos creíbles. 
+
+Las distribuciones previas utilizadas son debilesmente informativas:para las habilidades de los estudiantes:𝜃∼𝑁(0,1). Para las dificultades de los ítems: bj∼N(0,2). El modelo se estimará con 4 cadenas de meustreo, 2000 iteraciones por cadenas (1000 coomo warm-up), resultando en 4000 muestras posteriores del parámetro.
+
+Las posterior predictive checks se utizarán para comparar las respuestas observadas con datos simulados a partir de la distribución posterior, para ver hasta qué punto el modelo es capaz de reproducir los patrones reales del conjunto de datos. 
+
+
+
+
+```{r}
+
+# Cargar paquetes necesarios
+
+library(tidyverse)
+library(dplyr)
+library(readr)
+
+library(here)
+pisa <- read_csv2(here("dat", "PISA_2000 (2).csv"))
+
+renv::snapshot()
+
+# Seleccionar ítems (todos empiezan con "R")
+items <- pisa %>% select(starts_with("R"))
+
+# Verificar qué ítems tienen el valor 2
+valores_por_item <- map(items, ~ unique(.x))
+items_con_2 <- names(keep(valores_por_item, ~ 2 %in% .x))
+items_solo_01 <- setdiff(names(items), items_con_2)
+
+# Recodificar: ítems con 2 → 2 = 1 (correcto); 0 y 1 = 0 (incorrecto/parcial)
+#              ítems con solo 0 y 1 → 1 = 1 (correcto); 0 = 0
+items_binarios <- items %>%
+  mutate(across(all_of(items_con_2), ~ ifelse(. == 2, 1,
+                                       ifelse(. %in% c(0, 1), 0, NA)))) %>%
+  mutate(across(all_of(items_solo_01), ~ ifelse(. == 1, 1,
+                                         ifelse(. == 0, 0, NA))))
+
+# Confirmar que hay 1s y 0s
+summary(items_binarios)
+
+#AHORA CALCULO EL MODELO 2PL
+
+#PREPARAR EL ENTORNO
+
+library(brms)
+
+#TRANSFORMAR A FORMATO LARGO
+
+# Agregar identificador de estudiante
+items_binarios$id <- 1:nrow(items_binarios)
+
+# Transformar a formato largo
+data_long <- items_binarios %>%
+  pivot_longer(
+    cols = -id,
+    names_to = "item",
+    values_to = "response"
+  ) %>%
+  drop_na()  # Eliminar NA (no respuesta)
+
+# Modelo logístico con efectos aleatorios por ítem (dificultad) y por persona (habilidad)
+modelo_2pl <- brm(
+  response ~ 1 + (1 | id) + (1 | item),  # Rasgo latente por persona, dificultad por ítem
+  data = data_long,
+  family = bernoulli(link = "logit"),
+  iter = 2000,
+  chains = 4,
+  cores = 4,
+  seed = 123,
+  control = list(adapt_delta = 0.95)
+)
+
+
+# Resumen de parámetros estimados
+summary(modelo_2pl)
+
+# Graficar distribuciones posteriores
+plot(modelo_2pl)
+
+# Efectos por ítem (dificultad)
+ranef(modelo_2pl)$item
+
+# Efectos por persona (habilidad)
+ranef(modelo_2pl)$id
+
+summary(modelo_2pl)
+
+
+```
+
+```{r}
+#ver dificultad de cada ítem
+ranef(modelo_2pl)$item
+
+#ver la habilida estimada de cada estudiante 
+ranef(modelo_2pl)$id
+
+```
+
+```{r}
+#posterior predictive check
+pp_check(modelo_2pl)
+
+```
+
+
+
+Resultados:
+
+Los estadísticos de convergencia (Rhat = 1.00) y las muestras efectivas (ESS > 700 en todos los parámetros) indican que el muestreo posterior fue adecuado.Además, las comprobaciones predictivas posteriores (pp_check) muestran una excelente correspondencia entre las respuestas observadas y las simuladas por el modelo. Por otro lado, se estimó la habilidad de 1095 estudaintes (θ), con media 0 y desviación típica 1.29. Además, la dificultad de 26 ítems tuvo un rango de -2.67 (más facil) y +1.28 (más dificil). 
+
+Ejemplo: 
+
+ítem R088Q04T, con b -2.67 e intervalo del 95% 	[−3.14, −2.17].
+
+Respecto a la comprobación predictiva posterior, Se utilizó la función pp_check() para evaluar el ajuste del modelo. El gráfico de densidades muestra que las respuestas simuladas desde la posterior (líneas claras) coinciden con la distribución de las respuestas reales (línea oscura). Esto respalda la adecuación del modelo 1PL a los datos observados.
+
+En conclusión, el enfoque bayesiano aplicado al modelo 1PL de la Teoría de Respuesta al ítem, ha permitido obtener estimaciones de habilidad y dificultad, junto con intervalos creíbles que cuantifican la incertidumbre de forma clara. La evaluación predictiva posterior sugiere un buen ajuste del modelo, lo que refuerza su utilidad para analizar ítems de comprensión lectora en evaluaciones educativas como PISA.
+
+
+
